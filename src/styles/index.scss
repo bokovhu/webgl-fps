@@ -1,0 +1,52 @@
+html,
+body,
+main {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    top: 0;
+    left: 0;
+    overflow: hidden;
+
+    canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        border: 0;
+    }
+
+    .pointer-locker-container {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        .pointer-locker {
+            color: #ffffff;
+            font-weight: bold;
+            font-family: "Lucida Sans", "Lucida Sans Regular", "Lucida Grande",
+                "Lucida Sans Unicode", Geneva, Verdana, sans-serif;
+            font-variant: small-caps;
+            font-size: 32px;
+            text-align: center;
+            padding: 20px;
+            border: 0;
+            margin: 0;
+            background: transparent;
+
+            &:hover {
+                background: rgba(30, 60, 140, 0.2);
+            }
+        }
+    }
+}
