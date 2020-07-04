@@ -149,10 +149,10 @@ function buildChunkGraph(chunks, numChunks) {
 
 const noise = new SimplexNoise(Math.random);
 
-const g_threshold = -0.4;
+const g_threshold = [-0.7, -0.4];
 
 export function generateChunks(opts) {
-    const { numChunks, chunkSize } = opts;
+    const { numChunks, chunkSize, coords } = opts;
     let { transformCoordinates, generateValue } = opts;
     if (!transformCoordinates) {
         transformCoordinates = (x, y, z) => [
@@ -163,13 +163,18 @@ export function generateChunks(opts) {
     }
     if (!generateValue) {
         generateValue = (x, y, z) => {
-
             const noiseValue = noise.noise3D(x, y, z);
 
-            if (noiseValue < g_threshold) {
-                const amount = Math.floor(
-                    (255.0 * (noiseValue - g_threshold)) / (g_threshold / 1.0)
+            if (noiseValue < g_threshold[1]) {
+                const clampedNoiseValue = Math.max(
+                    g_threshold[0],
+                    Math.min(g_threshold[1], noiseValue)
                 );
+                const translatedNoiseValue = clampedNoiseValue - g_threshold[0];
+                const normalizedNoiseValue =
+                    translatedNoiseValue /
+                    Math.abs(g_threshold[1] - g_threshold[0]);
+                const amount = Math.floor(255.0 * normalizedNoiseValue);
                 return ((amount & 0xff) << 8) | 0x01;
             }
 
@@ -182,6 +187,10 @@ export function generateChunks(opts) {
     let chunkPtr = 0;
     console.log(`About to generate ${totalNumChunks} chunks ...`);
 
+    const offsetX = coords ? coords[0] : 0;
+    const offsetY = coords ? coords[1] : 0;
+    const offsetZ = coords ? coords[2] : 0;
+
     for (let cz = 0; cz < numChunks[2]; cz++) {
         for (let cy = 0; cy < numChunks[1]; cy++) {
             for (let cx = 0; cx < numChunks[0]; cx++) {
@@ -190,9 +199,9 @@ export function generateChunks(opts) {
                 }
 
                 const chunkCoords = [
-                    cx * chunkSize[0],
-                    cy * chunkSize[1],
-                    cz * chunkSize[2],
+                    cx * (chunkSize[0] - 1) + offsetX * (chunkSize[0] - 1),
+                    cy * (chunkSize[1] - 1) + offsetY * (chunkSize[1] - 1),
+                    cz * (chunkSize[2] - 1) + offsetZ * (chunkSize[2] - 1),
                 ];
 
                 const chunk = new Chunk(

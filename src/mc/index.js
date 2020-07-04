@@ -8,10 +8,10 @@ import {
 import { measure } from "../util/measure";
 
 function interp(a, b, l) {
-    if (Math.abs(l - a[0]) < 0.001) return a.slice(1);
-    if (Math.abs(l - b[0]) < 0.001) return b.slice(1);
-    if (Math.abs(a[0] - b[0]) < 0.001) return a.slice(1);
-    const alpha = (l - a[0]) / (b[0] - a[0]);
+    if (Math.abs(l - a[0]) < 0.0001) return a.slice(1);
+    if (Math.abs(l - b[0]) < 0.0001) return b.slice(1);
+    if (Math.abs(a[0] - b[0]) < 0.0001) return a.slice(1);
+    const alpha = Math.abs((l - a[0]) / (b[0] - a[0]));
     return [
         a[1] + (b[1] - a[1]) * alpha,
         a[2] + (b[2] - a[2]) * alpha,
@@ -42,7 +42,7 @@ function fetchTrilinear(grid, idx, p) {
         v010 * (1.0 - dX) + v110 * dX,
         v011 * (1.0 - dX) + v111 * dX,
     ];
-    const [v0, v1] = [v00 * (1.0 - dY) + v01 * dY, v01 * (1.0 - dY) + v11 * dY];
+    const [v0, v1] = [v00 * (1.0 - dY) + v01 * dY, v10 * (1.0 - dY) + v11 * dY];
     return v0 * (1.0 - dZ) + v1 * dZ;
 }
 
@@ -71,9 +71,9 @@ export default function marchingCubes(opts) {
         vertices.push([0, 0, 0]);
     }
 
-    for (let z = 0; z < size[2]; z++) {
-        for (let y = 0; y < size[1]; y++) {
-            for (let x = 0; x < size[0]; x++) {
+    for (let z = 0; z < size[2] - 1; z++) {
+        for (let y = 0; y < size[1] - 1; y++) {
+            for (let x = 0; x < size[0] - 1; x++) {
                 let cubeIndex = 0;
 
                 const [v000, v100, v101, v001, v010, v110, v111, v011] = [
@@ -86,15 +86,6 @@ export default function marchingCubes(opts) {
                     chunk.dataAtWithJump(x + 1, y + 1, z + 1),
                     chunk.dataAtWithJump(x, y + 1, z + 1),
                 ];
-
-                if (typeof v000 === "undefined") continue;
-                if (typeof v100 === "undefined") continue;
-                if (typeof v101 === "undefined") continue;
-                if (typeof v001 === "undefined") continue;
-                if (typeof v010 === "undefined") continue;
-                if (typeof v110 === "undefined") continue;
-                if (typeof v111 === "undefined") continue;
-                if (typeof v011 === "undefined") continue;
 
                 if (inside(v000)) cubeIndex |= 1;
                 if (inside(v100)) cubeIndex |= 2;

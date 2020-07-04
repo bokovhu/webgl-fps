@@ -60,35 +60,62 @@ function isKeyEscape(key) {
 
 var lastFrameTime = Date.now();
 
-let renderableMesh = new RenderableMesh(gl);
+const renderables = [];
+let chunkWorkQueue = [];
+const chunkSize = [32, 32, 32];
+const chunkGroupSize = [2, 2, 2];
+const numChunkGroups = [5, 5, 5];
+const chunksBaseOffset = [
+    -1 * Math.floor (numChunkGroups[0] * 0.5),
+    -1 * Math.floor (numChunkGroups[1] * 0.5),
+    -1 * Math.floor (numChunkGroups[2] * 0.5),
+];
+
+for (let chunkGroupZ = 0; chunkGroupZ < numChunkGroups[2]; chunkGroupZ++) {
+    for (let chunkGroupY = 0; chunkGroupY < numChunkGroups[1]; chunkGroupY++) {
+        for (
+            let chunkGroupX = 0;
+            chunkGroupX < numChunkGroups[0];
+            chunkGroupX++
+        ) {
+            chunkWorkQueue.push({
+                chunkSize,
+                numChunks: chunkGroupSize,
+                coords: [
+                    chunksBaseOffset[0] + chunkGroupX * chunkGroupSize[0],
+                    chunksBaseOffset[1] + chunkGroupY * chunkGroupSize[1],
+                    chunksBaseOffset[2] + chunkGroupZ * chunkGroupSize[2],
+                ],
+            });
+        }
+    }
+}
+
+chunkWorkQueue = chunkWorkQueue.sort((job1, job2) => {
+    const job1Distance = vec3.len(job1.coords);
+    const job2Distance = vec3.len(job2.coords);
+    if (job1Distance < job2Distance) return -1;
+    return 1;
+});
 
 const gridSize = [32, 32, 32];
-const numChunks = [12, 12, 12];
+const numChunks = [4, 4, 4];
 
-const chunks = measure("generateChunks()", () =>
-    generateChunks({
-        numChunks: numChunks,
-        chunkSize: gridSize,
-    })
-);
-const levelSetChunks = measure("convertChunks()", () =>
-    convertChunks(chunks, numChunks)
-);
-const rawMeshes = measure("marchingCubes()", () =>
-    levelSetChunks.map((chunk) => ({
-        mesh: marchingCubes({
-            chunk: chunk,
-            size: chunk.size,
-            isoLevel: 0.0,
-            diagnostics: true,
-        }),
-        chunk,
-    }))
-).map((rawMesh) => ({
-    chunk: rawMesh.chunk,
-    mesh: translateRawMesh(rawMesh.mesh, rawMesh.chunk.coords),
-}));
-renderableMesh.process(gl, mergeRawMeshes(rawMeshes.map((rm) => rm.mesh)));
+const bgWorker = new Worker("./generate-chunk.worker.js");
+bgWorker.postMessage(chunkWorkQueue.shift());
+let ready = false;
+
+bgWorker.onmessage = (event) => {
+    const { chunks, rawMeshes } = event.data;
+    const renderableMesh = new RenderableMesh(gl);
+    renderableMesh.process(gl, mergeRawMeshes(rawMeshes.map((rm) => rm.mesh)));
+    renderables.push(renderableMesh);
+    ready = true;
+
+    if (chunkWorkQueue.length > 0) {
+        bgWorker.postMessage(chunkWorkQueue.shift());
+    }
+};
 
 const blinnPhongProgram = new Program(
     gl,
@@ -187,6 +214,11 @@ let lightDir = vec3.fromValues(1.0, -0.8, 0.4);
 lightDir = vec3.normalize(lightDir, lightDir);
 
 function render(delta) {
+    if (!ready) {
+        gl.clearColor(0, 0, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        return;
+    }
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -243,7 +275,8 @@ function render(delta) {
         renderContext.camera.forward[2]
     );
 
-    renderableMesh.draw(gl);
+    // renderableMesh.draw(gl);
+    renderables.forEach((r) => r.draw(gl));
 }
 
 function onAnimationFrame() {

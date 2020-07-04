@@ -142,6 +142,14 @@ export function translateRawMesh(rawMesh, delta) {
     };
 }
 
+export function flipNormalsInRawMesh(rawMesh) {
+    return {
+        faces: rawMesh.faces,
+        normals: rawMesh.normals.map((n) => vec3.inverse(n, n)),
+        vertices: rawMesh.vertices,
+    };
+}
+
 export function mergeRawMeshes(rawMeshes) {
     const allVertices = [];
     const allFaces = [];
