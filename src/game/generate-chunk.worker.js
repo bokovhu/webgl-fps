@@ -1,9 +1,9 @@
-const { generateChunks, convertChunks } = require("./gen/generate");
-const { default: marchingCubes } = require("./mc");
+const { generateChunks, convertChunks } = require("../gen/generate");
+const { default: marchingCubes } = require("../mc");
 const {
     translateRawMesh,
     flipNormalsInRawMesh,
-} = require("./render/mesh-renderer");
+} = require("../render/mesh-utils");
 
 function generate(chunkSize, numChunks, coords) {
     const chunks = generateChunks({
@@ -35,7 +35,7 @@ function generate(chunkSize, numChunks, coords) {
         chunk.prev.z = undefined;
     });
 
-    return { chunks, rawMeshes };
+    return { rawMeshes };
 }
 
 self.onmessage = (event) => {

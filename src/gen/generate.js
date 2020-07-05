@@ -149,16 +149,16 @@ function buildChunkGraph(chunks, numChunks) {
 
 const noise = new SimplexNoise(Math.random);
 
-const g_threshold = [-0.7, -0.4];
+const g_threshold = [-0.8, -0.4];
 
 export function generateChunks(opts) {
     const { numChunks, chunkSize, coords } = opts;
     let { transformCoordinates, generateValue } = opts;
     if (!transformCoordinates) {
         transformCoordinates = (x, y, z) => [
-            x / 64.0 + Math.sin((x / chunkSize[0]) * Math.PI * 0.3) * 0.42,
-            y / 48.0,
-            z / 70.0 + Math.cos((5 + x / chunkSize[0]) * Math.PI * 0.4) * 0.23,
+            x / 130.0 + Math.sin((x / chunkSize[0]) * Math.PI * 0.3) * 0.006,
+            y / 110.0 - Math.cos(Math.cos(x * 4.0) - Math.sin(y * 6.7) + Math.sin(z * 2.4)) * 0.001,
+            z / 162.0 + Math.cos((5 + x / chunkSize[0]) * Math.PI * 0.4) * 0.007,
         ];
     }
     if (!generateValue) {

@@ -4,7 +4,8 @@ import { vec3 } from "gl-matrix";
 import {
     optimizeRawMesh,
     rawMeshFromTriangleList,
-} from "../render/mesh-renderer";
+    unoptimizedRawMesh,
+} from "../render/mesh-utils";
 import { measure } from "../util/measure";
 
 function interp(a, b, l) {
@@ -178,11 +179,11 @@ export default function marchingCubes(opts) {
 
                     rawOutput.push({
                         vertices: [p1, p2, p3],
-                        values: [
+                        /* values: [
                             fetchTrilinear(chunk.data, idx, p1),
                             fetchTrilinear(chunk.data, idx, p2),
                             fetchTrilinear(chunk.data, idx, p3),
-                        ],
+                        ], */
                     });
                 }
             }
@@ -197,7 +198,7 @@ export default function marchingCubes(opts) {
     }
 
     const finalResult = measure("marchingCubes() - optimizeRawMesh()", () =>
-        optimizeRawMesh(rawMeshFromTriangleList(rawOutput))
+        unoptimizedRawMesh(rawMeshFromTriangleList(rawOutput))
     );
 
     const endTimestamp = Date.now();

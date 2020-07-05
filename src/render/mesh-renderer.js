@@ -20,9 +20,13 @@ export var renderContext = {
         right: vec3.create(),
         up: vec3.create(),
     },
+    program: undefined,
+    gl: undefined,
 };
 
-export function updateRenderContext() {
+export function updateRenderContext(opts) {
+    renderContext.program = opts.program;
+    renderContext.gl = opts.gl;
     renderContext.transform.modelView = mat4.mul(
         renderContext.transform.modelView,
         renderContext.transform.view,
@@ -43,134 +47,6 @@ export function updateRenderContext() {
     );
 }
 
-export function rawMeshFromTriangleList(triangles) {
-    const vertices = [];
-    triangles.forEach((tri) => vertices.push(...tri.vertices));
-    const faces = [];
-    triangles.forEach((_, idx) =>
-        faces.push([idx * 3, idx * 3 + 1, idx * 3 + 2])
-    );
-
-    return { vertices, faces };
-}
-
-export function optimizeRawMesh(rawMesh) {
-    const vertexMap = new Map();
-    const vertexFaces = new Map();
-    const vertices = [];
-    const normals = [];
-    const faces = [];
-
-    const vertexKey = (vertex) => `${vertex[0]},${vertex[1]},${vertex[2]}`;
-    const vertexIndex = (v, vk) => {
-        if (vertexMap.has(vk)) return vertexMap.get(vk);
-        const index = vertices.length;
-        vertices.push(v);
-        vertexMap.set(vk, index);
-        return index;
-    };
-    const addVertexFace = (vk, f) => {
-        const currVertexFaces = vertexFaces.get(vk) || [];
-        currVertexFaces.push(f);
-        vertexFaces.set(vk, currVertexFaces);
-    };
-
-    rawMesh.faces.forEach((face, index) => {
-        const [v1, v2, v3] = [
-            rawMesh.vertices[face[0]],
-            rawMesh.vertices[face[1]],
-            rawMesh.vertices[face[2]],
-        ];
-        const [k1, k2, k3] = [v1, v2, v3].map(vertexKey);
-        const [i1, i2, i3] = [
-            vertexIndex(v1, k1),
-            vertexIndex(v2, k2),
-            vertexIndex(v3, k3),
-        ];
-
-        const faceIndex = faces.length;
-        faces.push([i1, i2, i3]);
-        addVertexFace(k1, faceIndex);
-        addVertexFace(k2, faceIndex);
-        addVertexFace(k3, faceIndex);
-    });
-
-    console.log(
-        `Original vertex count: ${rawMesh.vertices.length}, deduplicated count: ${vertices.length}`
-    );
-
-    vertices.forEach((vertex) => {
-        const key = vertexKey(vertex);
-        const faceIds = vertexFaces.get(key);
-        let vertexNormal = vec3.fromValues(0, 0, 0);
-
-        faceIds.forEach((faceId) => {
-            const [i1, i2, i3] = faces[faceId];
-            const [v1, v2, v3] = [vertices[i1], vertices[i2], vertices[i3]];
-            let v1v2 = vec3.fromValues(v2[0], v2[1], v2[2]);
-            vec3.sub(v1v2, v1v2, v1);
-            let v2v3 = vec3.fromValues(v3[0], v3[1], v3[2]);
-            vec3.sub(v2v3, v2v3, v2);
-
-            let faceNormal = vec3.fromValues(0, 0, 0);
-            vec3.cross(faceNormal, v1v2, v2v3);
-            vec3.normalize(faceNormal, faceNormal);
-
-            vec3.add(vertexNormal, vertexNormal, faceNormal);
-        });
-
-        vec3.normalize(vertexNormal, vertexNormal);
-        normals.push(vertexNormal);
-    });
-
-    return {
-        vertices,
-        normals,
-        faces,
-    };
-}
-
-export function translateRawMesh(rawMesh, delta) {
-    return {
-        faces: rawMesh.faces,
-        normals: rawMesh.normals,
-        vertices: rawMesh.vertices.map((v) => [
-            v[0] + delta[0],
-            v[1] + delta[1],
-            v[2] + delta[2],
-        ]),
-    };
-}
-
-export function flipNormalsInRawMesh(rawMesh) {
-    return {
-        faces: rawMesh.faces,
-        normals: rawMesh.normals.map((n) => vec3.inverse(n, n)),
-        vertices: rawMesh.vertices,
-    };
-}
-
-export function mergeRawMeshes(rawMeshes) {
-    const allVertices = [];
-    const allFaces = [];
-
-    rawMeshes.forEach((rawMesh) => {
-        const newFaces = rawMesh.faces.map((f) => [
-            f[0] + allVertices.length,
-            f[1] + allVertices.length,
-            f[2] + allVertices.length,
-        ]);
-        allVertices.push(...rawMesh.vertices);
-        allFaces.push(...newFaces);
-    });
-
-    console.log(
-        `Merged ${rawMeshes.length} meshes: ${allVertices.length} vertices, ${allFaces.length} faces`
-    );
-
-    return optimizeRawMesh({ vertices: allVertices, faces: allFaces });
-}
-
 export class RenderableMesh {
     constructor(gl) {
         this.vbo = gl.createBuffer();
@@ -184,20 +60,24 @@ export class RenderableMesh {
 
         const vertexElements = 3 + 3;
         const vertexBytes = vertexElements * Float32Array.BYTES_PER_ELEMENT;
-        const vertexData = [];
-        const indexData = [];
+        const vertexData = new Float32Array(vertexElements * this.numVertices);
+        const indexData = new Uint32Array(this.numFaces * 3);
 
         for (let i = 0; i < this.numVertices; i++) {
             const vertexPosition = rawMesh.vertices[i];
             const vertexNormal = rawMesh.normals[i];
 
-            vertexData.push(...vertexPosition, ...vertexNormal);
+            // vertexData.push(...vertexPosition, ...vertexNormal);
+            vertexData.set(
+                [...vertexPosition, ...vertexNormal],
+                vertexElements * i
+            );
         }
 
         for (let i = 0; i < this.numFaces; i++) {
             const face = rawMesh.faces[i];
 
-            indexData.push(...face);
+            indexData.set(face, 3 * i);
         }
 
         assert(vertexData.length === this.numVertices * vertexElements);
@@ -206,18 +86,10 @@ export class RenderableMesh {
         gl.bindVertexArray(this.vao);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
-        gl.bufferData(
-            gl.ARRAY_BUFFER,
-            new Float32Array(vertexData),
-            gl.STATIC_DRAW
-        );
+        gl.bufferData(gl.ARRAY_BUFFER, vertexData, gl.STATIC_DRAW);
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ibo);
-        gl.bufferData(
-            gl.ELEMENT_ARRAY_BUFFER,
-            new Uint32Array(indexData),
-            gl.STATIC_DRAW
-        );
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexData, gl.STATIC_DRAW);
 
         gl.enableVertexAttribArray(0);
         gl.enableVertexAttribArray(1);
@@ -414,4 +286,13 @@ export class Program {
         );
         return this.uniformLocationCache[name];
     }
+}
+
+export function UNIFORM(name) {
+    if (renderContext.program && renderContext.gl) {
+        return renderContext.program.uniformLocation(renderContext.gl, name);
+    }
+    throw new Error(
+        "UNIFORM can only be used when the WebGL context and the shader program is set in the renderContext!"
+    );
 }

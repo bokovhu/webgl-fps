@@ -78,10 +78,6 @@ vec3 lighting() {
         u_Ld,
         u_La,
         u_Le
-    ) + directionalLight (
-        normalize(cross(-1.0 * u_Ld, vec3(1.0, 0.0, 0.0))),
-        u_La,
-        u_Le * 0.4
     );
 
     return result;
