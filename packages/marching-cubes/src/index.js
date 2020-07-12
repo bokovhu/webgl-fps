@@ -8,6 +8,10 @@ import {
 } from "@me.bokov.webglfps/mesh";
 import { measure } from "@me.bokov.webglfps/util";
 
+const DO_MESH_OPTIMIZATION = true;
+const DO_FETCH_CORNER_VALUES = false;
+const DO_FETCH_NORMAL_VECTORS = true;
+
 function interp(a, b, l) {
     if (Math.abs(l - a[0]) < 0.0001) return a.slice(1);
     if (Math.abs(l - b[0]) < 0.0001) return b.slice(1);
@@ -53,6 +57,19 @@ function postProcessVertex(vertex) {
         parseFloat(vertex[1].toFixed(2)),
         parseFloat(vertex[2].toFixed(2)),
     ];
+}
+
+function normalFromDerivative(grid, idx, p) {
+    const dx =
+        fetchTrilinear(grid, idx, [p[0] + 0.001, p[1], p[2]]) -
+        fetchTrilinear(grid, idx, [p[0] - 0.001, p[1], p[2]]);
+    const dy =
+        fetchTrilinear(grid, idx, [p[0], p[1] + 0.001, p[2]]) -
+        fetchTrilinear(grid, idx, [p[0], p[1] - 0.001, p[2]]);
+    const dz =
+        fetchTrilinear(grid, idx, [p[0], p[1], p[2] + 0.001]) -
+        fetchTrilinear(grid, idx, [p[0], p[1], p[2] - 0.001]);
+    return vec3.normalize([0, 0, 0], [dx, dy, dz]);
 }
 
 export default function marchingCubes(opts) {
@@ -177,13 +194,28 @@ export default function marchingCubes(opts) {
                         vertices[triangleTable[cubeIndex][i + 2]]
                     );
 
-                    rawOutput.push({
-                        vertices: [p1, p2, p3],
-                        /* values: [
+                    let normals = undefined;
+                    if (DO_FETCH_NORMAL_VECTORS) {
+                        normals = [
+                            normalFromDerivative(chunk.data, idx, p1),
+                            normalFromDerivative(chunk.data, idx, p2),
+                            normalFromDerivative(chunk.data, idx, p3),
+                        ];
+                    }
+
+                    let values = undefined;
+                    if (DO_FETCH_CORNER_VALUES) {
+                        values = [
                             fetchTrilinear(chunk.data, idx, p1),
                             fetchTrilinear(chunk.data, idx, p2),
                             fetchTrilinear(chunk.data, idx, p3),
-                        ], */
+                        ];
+                    }
+
+                    rawOutput.push({
+                        vertices: [p1, p2, p3],
+                        normals,
+                        values,
                     });
                 }
             }
@@ -197,9 +229,11 @@ export default function marchingCubes(opts) {
         );
     }
 
-    const finalResult = measure("marchingCubes() - optimizeRawMesh()", () =>
-        unoptimizedRawMesh(rawMeshFromTriangleList(rawOutput))
-    );
+    const finalResult = measure("marchingCubes() - optimizeRawMesh()", () => {
+        if (DO_MESH_OPTIMIZATION)
+            return optimizeRawMesh(rawMeshFromTriangleList(rawOutput));
+        else return unoptimizedRawMesh(rawMeshFromTriangleList(rawOutput));
+    });
 
     const endTimestamp = Date.now();
     if (opts.diagnostics) {

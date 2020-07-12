@@ -2,18 +2,27 @@ import { vec3 } from "gl-matrix";
 
 export function rawMeshFromTriangleList(triangles) {
     const vertices = [];
-    triangles.forEach((tri) => vertices.push(...tri.vertices));
+    const normals = [];
+    const values = [];
+
+    triangles.forEach((tri) => {
+        vertices.push(...tri.vertices);
+        if (tri.normals) normals.push(...tri.normals);
+        if (tri.values) values.push(...tri.values);
+    });
+
     const faces = [];
     triangles.forEach((_, idx) =>
         faces.push([idx * 3, idx * 3 + 1, idx * 3 + 2])
     );
 
-    return { vertices, faces };
+    return { vertices, faces, normals, values };
 }
 
 export function optimizeRawMesh(rawMesh) {
     const vertexMap = new Map();
     const vertexFaces = new Map();
+    const vertexNormalMap = new Map();
     const vertices = [];
     const normals = [];
     const faces = [];
@@ -31,6 +40,11 @@ export function optimizeRawMesh(rawMesh) {
         currVertexFaces.push(f);
         vertexFaces.set(vk, currVertexFaces);
     };
+    const addVertexNormal = (vk, n) => {
+        const currVertexNormals = vertexNormalMap.get(vk) || [];
+        currVertexNormals.push(n);
+        vertexNormalMap.set(vk, currVertexNormals);
+    };
 
     rawMesh.faces.forEach((face, index) => {
         const [v1, v2, v3] = [
@@ -44,6 +58,12 @@ export function optimizeRawMesh(rawMesh) {
             vertexIndex(v2, k2),
             vertexIndex(v3, k3),
         ];
+
+        if (rawMesh.normals && rawMesh.normals.length > 0) {
+            addVertexNormal(k1, rawMesh.normals[face[0]]);
+            addVertexNormal(k2, rawMesh.normals[face[1]]);
+            addVertexNormal(k3, rawMesh.normals[face[2]]);
+        }
 
         const faceIndex = faces.length;
         faces.push([i1, i2, i3]);
@@ -61,23 +81,35 @@ export function optimizeRawMesh(rawMesh) {
         const faceIds = vertexFaces.get(key);
         let vertexNormal = vec3.fromValues(0, 0, 0);
 
-        faceIds.forEach((faceId) => {
-            const [i1, i2, i3] = faces[faceId];
-            const [v1, v2, v3] = [vertices[i1], vertices[i2], vertices[i3]];
-            let v1v2 = vec3.fromValues(v2[0], v2[1], v2[2]);
-            vec3.sub(v1v2, v1v2, v1);
-            let v2v3 = vec3.fromValues(v3[0], v3[1], v3[2]);
-            vec3.sub(v2v3, v2v3, v2);
+        if (rawMesh.normals && rawMesh.normals.length > 0) {
+            const normals = vertexNormalMap.get(key);
+            if (normals) {
+                normals.forEach((n) => {
+                    vertexNormal = vec3.add(vertexNormal, vertexNormal, n);
+                });
+            }
+            vertexNormal = vec3.normalize(vertexNormal, vertexNormal);
 
-            let faceNormal = vec3.fromValues(0, 0, 0);
-            vec3.cross(faceNormal, v1v2, v2v3);
-            vec3.normalize(faceNormal, faceNormal);
+            normals.push(vertexNormal);
+        } else {
+            faceIds.forEach((faceId) => {
+                const [i1, i2, i3] = faces[faceId];
+                const [v1, v2, v3] = [vertices[i1], vertices[i2], vertices[i3]];
+                let v1v2 = vec3.fromValues(v2[0], v2[1], v2[2]);
+                vec3.sub(v1v2, v1v2, v1);
+                let v2v3 = vec3.fromValues(v3[0], v3[1], v3[2]);
+                vec3.sub(v2v3, v2v3, v2);
 
-            vec3.add(vertexNormal, vertexNormal, faceNormal);
-        });
+                let faceNormal = vec3.fromValues(0, 0, 0);
+                vec3.cross(faceNormal, v1v2, v2v3);
+                vec3.normalize(faceNormal, faceNormal);
 
-        vec3.normalize(vertexNormal, vertexNormal);
-        normals.push(vertexNormal);
+                vec3.add(vertexNormal, vertexNormal, faceNormal);
+            });
+
+            vec3.normalize(vertexNormal, vertexNormal);
+            normals.push(vertexNormal);
+        }
     });
 
     return {
@@ -157,16 +189,8 @@ export function mergeRawMeshes(rawMeshes) {
 }
 
 export function subdivideRawMesh(rawMesh) {
-
     const edges = [];
-    rawMesh.faces.forEach(
-        (face) => {
-            edges.push(
-                [face[0], face[1]],
-                [face[1], face[2]],
-                [face[2], face[0]]
-            );
-        }
-    );
-
+    rawMesh.faces.forEach((face) => {
+        edges.push([face[0], face[1]], [face[1], face[2]], [face[2], face[0]]);
+    });
 }

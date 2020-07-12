@@ -33,13 +33,13 @@ export function generateChunks(opts) {
     let { transformCoordinates, generateValue } = opts;
     if (!transformCoordinates) {
         transformCoordinates = (x, y, z) => [
-            x / 130.0 + Math.sin((x / chunkSize[0]) * Math.PI * 0.3) * 0.006,
-            y / 110.0 -
+            x / 34.0 + Math.sin((x / chunkSize[0]) * Math.PI * 0.3) * 0.006,
+            y / 37.0 -
                 Math.cos(
                     Math.cos(x * 4.0) - Math.sin(y * 6.7) + Math.sin(z * 2.4)
                 ) *
                     0.001,
-            z / 162.0 +
+            z / 46.0 +
                 Math.cos((5 + x / chunkSize[0]) * Math.PI * 0.4) * 0.007,
         ];
     }
