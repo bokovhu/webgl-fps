@@ -1,0 +1,9 @@
+{
+    "name": "@me.bokov.webglfps/generator",
+    "version": "1.0.0",
+    "private": true,
+    "main": "src/index.js",
+    "dependencies": {
+        "simplex-noise": "workspace:*"
+    }
+}

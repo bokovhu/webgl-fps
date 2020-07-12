@@ -1,0 +1,9 @@
+{
+    "name": "@me.bokov.webglfps/mesh",
+    "version": "1.0.0",
+    "private": true,
+    "main": "src/index.js",
+    "dependencies": {
+        "gl-matrix": "workspace:*"
+    }
+}

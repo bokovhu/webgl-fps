@@ -1,0 +1,45 @@
+{
+    "name": "@me.bokov.webglfps/app-web",
+    "version": "1.0.0",
+    "private": true,
+    "main": "src/index.js",
+    "installConfig": {
+        "pnp": true
+    },
+    "dependencies": {
+        "@me.bokov.webglfps/game": "workspace:packages/game",
+        "@me.bokov.webglfps/platform": "workspace:packages/platform"
+    },
+    "devDependencies": {
+        "@babel/core": "workspace:*",
+        "@babel/plugin-proposal-nullish-coalescing-operator": "workspace:*",
+        "@babel/plugin-proposal-optional-chaining": "workspace:*",
+        "@babel/plugin-transform-modules-commonjs": "workspace:*",
+        "@babel/preset-env": "workspace:*",
+        "@babel/preset-typescript": "workspace:*",
+        "awesome-worker-loader": "workspace:*",
+        "babel-loader": "workspace:*",
+        "concurrently": "workspace:*",
+        "css-loader": "workspace:*",
+        "dart-sass": "workspace:*",
+        "html-webpack-plugin": "workspace:*",
+        "http-server": "workspace:*",
+        "pnp-webpack-plugin": "workspace:*",
+        "sass-loader": "workspace:*",
+        "style-loader": "workspace:*",
+        "terser-webpack-plugin": "workspace:*",
+        "webpack": "workspace:*",
+        "webpack-cli": "workspace:*",
+        "webpack-dev-server": "workspace:*"
+    },
+    "scripts": {
+        "app-web:serve": "webpack-dev-server -d --config webpack.config.js",
+        "app-web:build": "webpack-cli -p --config webpack.config.js",
+        "app-web:build-dev": "webpack-cli -d --config webpack.config.js",
+        "app-web:watch": "webpack-cli -p --config webpack.config.js --watch",
+        "app-web:watch-dev": "webpack-cli -d --config webpack.config.js --watch",
+        "serve": "run app-web:serve",
+        "build": "run app-web:build",
+        "watch": "run app-web:watch"
+    }
+}

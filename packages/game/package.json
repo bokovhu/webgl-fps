@@ -1,0 +1,15 @@
+{
+    "name": "@me.bokov.webglfps/game",
+    "version": "1.0.0",
+    "private": true,
+    "main": "src/index.js",
+    "dependencies": {
+        "@me.bokov.webglfps/generator": "workspace:*",
+        "@me.bokov.webglfps/glsl": "workspace:*",
+        "@me.bokov.webglfps/marching-cubes": "workspace:*",
+        "@me.bokov.webglfps/mesh": "workspace:*",
+        "@me.bokov.webglfps/platform": "workspace:*",
+        "@me.bokov.webglfps/rendering": "workspace:*",
+        "gl-matrix": "workspace:*"
+    }
+}

@@ -1,0 +1,11 @@
+{
+    "name": "@me.bokov.webglfps/marching-cubes",
+    "version": "1.0.0",
+    "private": true,
+    "main": "src/index.js",
+    "dependencies": {
+        "@me.bokov.webglfps/mesh": "workspace:*",
+        "@me.bokov.webglfps/util": "workspace:*",
+        "gl-matrix": "workspace:*"
+    }
+}
